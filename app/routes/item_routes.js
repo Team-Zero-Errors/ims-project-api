@@ -30,7 +30,7 @@ const router = express.Router()
 
 // INDEX
 // GET /items
-router.get('/items', (req, res) => {
+router.get('/items', requireToken, (req, res) => {
   Item.find()
     .then(items => {
       // `items` will be an array of Mongoose documents
@@ -46,7 +46,7 @@ router.get('/items', (req, res) => {
 
 // SHOW
 // GET /items/5a7db6c74d55bc51bdf39793
-router.get('/items/:id', (req, res) => {
+router.get('/items/:id', requireToken, (req, res) => {
   // req.params.id will be set based on the `:id` in the route
   Item.findById(req.params.id)
     .then(handle404)
@@ -58,9 +58,9 @@ router.get('/items/:id', (req, res) => {
 
 // CREATE
 // POST /items
-router.post('/items', (req, res) => {
+router.post('/items', requireToken, (req, res) => {
   // set owner of new item to be current user
-  // req.body.item.owner = req.user.id
+  req.body.item.owner = req.user.id
   Item.create(req.body.item)
     // respond to succesful `create` with status 201 and JSON of new "item"
     .then(item => {
@@ -74,18 +74,18 @@ router.post('/items', (req, res) => {
 
 // UPDATE
 // PATCH /items/5a7db6c74d55bc51bdf39793
-router.patch('/items/:id', (req, res) => {
+router.patch('/items/:id', requireToken, (req, res) => {
   // if the client attempts to change the `owner` property by including a new
   // owner, prevent that by deleting that key/value pair
   delete req.body.item.owner
-
   Item.findById(req.params.id)
     .then(handle404)
     .then(item => {
       // pass the `req` object and the Mongoose record to `requireOwnership`
       // it will throw an error if the current user isn't the owner
-      // requireOwnership(req, item)
-
+      console.log('req.user is: ', req.user)
+      console.log('item is: ', item)
+      requireOwnership(req, item)
       // the client will often send empty strings for parameters that it does
       // not want to update. We delete any key/value pair where the value is
       // an empty string before updating
@@ -106,12 +106,12 @@ router.patch('/items/:id', (req, res) => {
 
 // DESTROY
 // DELETE /items/5a7db6c74d55bc51bdf39793
-router.delete('/items/:id', (req, res) => {
+router.delete('/items/:id', requireToken, (req, res) => {
   Item.findById(req.params.id)
     .then(handle404)
     .then(item => {
       // throw an error if current user doesn't own `item`
-      // requireOwnership(req, item)
+      requireOwnership(req, item)
       // delete the item ONLY IF the above didn't throw
       item.remove()
     })
